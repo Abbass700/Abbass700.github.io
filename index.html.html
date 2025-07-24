@@ -1,53 +1,73 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-    <meta charset="UTF-8">
-    <title>حاسبة تكلفة الشحن - تحويل اليوان للدولار</title>
-    <style>
-        body { font-family: Arial; text-align: center; margin-top: 40px; direction: rtl; }
-        input, button { padding: 10px; margin: 6px; font-size: 16px; width: 250px; }
-        .result { margin-top: 20px; font-size: 18px; color: green; line-height: 1.8; }
-    </style>
+  <meta charset="UTF-8" />
+  <title>حاسبة تكلفة الشحن</title>
+  <style>
+    body {
+      font-family: Arial;
+      text-align: center;
+      margin-top: 50px;
+    }
+    input, button {
+      padding: 10px;
+      margin: 5px;
+      font-size: 16px;
+    }
+    .result {
+      margin-top: 20px;
+      font-size: 20px;
+      color: green;
+    }
+  </style>
 </head>
 <body>
-    <h2>📦 حاسبة تكلفة الشحن (تحويل اليوان للدولار)</h2>
-    <input id="dimensions" placeholder="📐 الأبعاد (مثال: 88*32*44)">
-    <input id="yuan" type="number" placeholder="💰 سعر القطعة باليوان (مثال: 140)">
-    <input id="exchangeRate" type="number" step="0.01" placeholder="💱 سعر صرف اليوان (مثال: 7.2)">
-    <input id="quantity" type="number" placeholder="🔢 عدد القطع في الكارتون (مثال: 2)">
-    <button onclick="calculate()">احسب</button>
+  <h2>📦 حاسبة تكلفة الشحن (تحويل اليوان للدولار)</h2>
+  <input id="dimensions" placeholder="الأبعاد (مثال: 88*32*44)" />
+  <br />
+  <input id="yuan" type="number" placeholder="💰 سعر القطعة باليوان (مثال: 140)" />
+  <br />
+  <input id="rate" type="number" step="0.01" placeholder="🔄 سعر صرف اليوان (مثال: 7.2)" />
+  <br />
+  <input id="quantity" type="number" placeholder="🔢 عدد القطع في الكارتون (مثال: 2)" />
+  <br />
+  <button onclick="calculate()">احسب</button>
 
-    <div class="result" id="output"></div>
+  <div class="result" id="output"></div>
 
-    <script>
-        function calculate() {
-            const dims = document.getElementById('dimensions').value.split('*');
-            const yuan = parseFloat(document.getElementById('yuan').value);
-            const rate = parseFloat(document.getElementById('exchangeRate').value);
-            const qty = parseInt(document.getElementById('quantity').value);
+  <script>
+    function calculate() {
+      const dims = document.getElementById('dimensions').value.split('*');
+      const yuan = parseFloat(document.getElementById('yuan').value);
+      const rate = parseFloat(document.getElementById('rate').value);
+      const qty = parseInt(document.getElementById('quantity').value);
 
-            if (dims.length !== 3 || isNaN(yuan) || isNaN(rate) || isNaN(qty) || qty <= 0) {
-                document.getElementById('output').innerHTML = "❌ تأكد من إدخال الأبعاد وسعر اليوان وسعر الصرف وعدد القطع بشكل صحيح.";
-                return;
-            }
+      if (dims.length !== 3 || isNaN(yuan) || isNaN(rate) || isNaN(qty) || qty <= 0) {
+        document.getElementById('output').innerHTML = "⚠️ تأكد من إدخال القيم بشكل صحيح";
+        return;
+      }
 
-            const [l, w, h] = dims.map(Number);
-            const volume = (l * w * h) / 1000000;
-            const shippingIQD = volume * 110 * 1380;
-            const shippingPerUnit = shippingIQD / qty;
+      const [l, w, h] = dims.map(Number);
+      const volume = l * w * h / 1000000;
 
-            const usdPrice = yuan / rate;
-            const itemCostIQD = usdPrice * 1380;
-            const totalPerUnit = itemCostIQD + shippingPerUnit + 3000;
+      // ✅ تكلفة الشحن: حجم × 109 × 1350
+      const shipping = volume * 109 * 1350;
+      const shippingPerUnit = shipping / qty;
 
-            document.getElementById('output').innerHTML = `
-                ✅ حجم الكارتون: ${volume.toFixed(4)} م³<br>
-                💵 سعر القطعة بالدولار: ${usdPrice.toFixed(2)} $<br>
-                💰 سعر القطعة بالدينار: ${itemCostIQD.toFixed(2)} دينار<br>
-                🚚 تكلفة شحن الكارتون: ${shippingIQD.toFixed(2)} دينار<br>
-                📦 شحن للقطعة: ${shippingPerUnit.toFixed(2)} دينار<br>
-                💳 السعر النهائي للقطعة: ${totalPerUnit.toFixed(2)} دينار
-            `;
-        }
-    </script>
+      // ✅ سعر القطعة باليوان → دولار → دينار
+      const usdPrice = yuan / rate;
+      const itemCostIQD = usdPrice * 1380;
+
+      const totalCost = shippingPerUnit + itemCostIQD + 3000;
+
+      document.getElementById('output').innerHTML = `
+        ✅ حجم الكارتون: ${volume.toFixed(4)} م³ <br>
+        🚚 كلفة شحن الكارتون: ${shipping.toFixed(2)} دينار <br>
+        🧾 كلفة الشحن للقطعة: ${shippingPerUnit.toFixed(2)} دينار <br>
+        💰 سعر القطعة المحول: ${itemCostIQD.toFixed(2)} دينار <br>
+        💳 السعر النهائي للقطعة: ${totalCost.toFixed(2)} دينار
+      `;
+    }
+  </script>
 </body>
+</html>
