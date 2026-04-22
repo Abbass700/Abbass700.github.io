@@ -7,23 +7,23 @@
   <style>
     body {
       font-family: Arial, sans-serif;
-      text-align: center;
       margin: 0;
       padding: 20px;
-      direction: rtl;
       background: #f7f7f7;
+      direction: rtl;
     }
     .container {
-      max-width: 520px;
+      max-width: 560px;
       margin: auto;
       background: #fff;
       padding: 20px;
       border-radius: 12px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.08);
+      box-shadow: 0 0 12px rgba(0,0,0,0.08);
     }
     h2 {
       margin-top: 0;
       color: #222;
+      text-align: center;
     }
     input, button {
       width: 100%;
@@ -43,19 +43,21 @@
     }
     .result {
       margin-top: 18px;
-      font-size: 18px;
+      font-size: 17px;
       line-height: 1.8;
       text-align: right;
       color: #1b5e20;
       background: #f1fff3;
       padding: 14px;
       border-radius: 10px;
+      white-space: pre-line;
     }
     .note {
       margin-top: 10px;
       font-size: 13px;
       color: #666;
       text-align: right;
+      line-height: 1.6;
     }
   </style>
 </head>
@@ -64,63 +66,136 @@
     <h2>📦 حاسبة تكلفة الشحن</h2>
 
     <input id="dimensions" type="text" placeholder="الأبعاد (مثال: 88*32*44)">
-    <input id="yuan" type="number" step="0.01" placeholder="سعر القطعة باليوان">
+    <input id="yuan" type="number" step="0.01" placeholder="سعر السلعة باليوان">
     <input id="rate" type="number" step="0.01" placeholder="سعر صرف اليوان مقابل الدولار">
     <input id="quantity" type="number" step="1" placeholder="عدد القطع في الكارتون">
+
+    <input id="shippingUsdPerM3" type="number" step="0.01" placeholder="سعر المتر بالشحن بالدولار">
+    <input id="shippingIqdPerUsd" type="number" step="0.01" placeholder="سعر الدولار للشحن بالدينار">
+    <input id="itemIqdPerUsd" type="number" step="0.01" placeholder="سعر الدولار لتحويل السلعة للدينار">
+    <input id="chinaShippingYuan" type="number" step="0.01" placeholder="تكلفة الشحن داخل الصين باليوان">
 
     <button onclick="calculate()">احسب</button>
 
     <div class="result" id="output"></div>
 
     <div class="note">
-      الشحن: 230 دولار للمتر المكعب × 1500 دينار<br>
-      سعر القطعة: يوان → دولار → دينار بسعر 1400
+      سعر الصين الداخلي يتحول هكذا: (اليوان ÷ سعر صرف اليوان) × 14200 دينار<br>
+      الحقول كلها تحفظ آخر قيمة كتبتها تلقائيًا داخل نفس المتصفح
     </div>
   </div>
 
   <script>
+    const STORAGE_KEYS = {
+      dimensions: "calc_dimensions",
+      yuan: "calc_yuan",
+      rate: "calc_rate",
+      quantity: "calc_quantity",
+      shippingUsdPerM3: "calc_shippingUsdPerM3",
+      shippingIqdPerUsd: "calc_shippingIqdPerUsd",
+      itemIqdPerUsd: "calc_itemIqdPerUsd",
+      chinaShippingYuan: "calc_chinaShippingYuan"
+    };
+
+    const DEFAULTS = {
+      shippingUsdPerM3: 230,
+      shippingIqdPerUsd: 1500,
+      itemIqdPerUsd: 1400,
+      chinaShippingYuan: 0
+    };
+
+    function saveValue(id, key) {
+      const el = document.getElementById(id);
+      if (el) localStorage.setItem(key, el.value);
+    }
+
+    function loadValue(id, key, fallback = "") {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const saved = localStorage.getItem(key);
+      el.value = saved !== null && saved !== "" ? saved : fallback;
+    }
+
+    function bindPersistence(id, key) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.addEventListener("input", () => saveValue(id, key));
+    }
+
+    function init() {
+      loadValue("dimensions", STORAGE_KEYS.dimensions);
+      loadValue("yuan", STORAGE_KEYS.yuan);
+      loadValue("rate", STORAGE_KEYS.rate);
+      loadValue("quantity", STORAGE_KEYS.quantity);
+      loadValue("shippingUsdPerM3", STORAGE_KEYS.shippingUsdPerM3, DEFAULTS.shippingUsdPerM3);
+      loadValue("shippingIqdPerUsd", STORAGE_KEYS.shippingIqdPerUsd, DEFAULTS.shippingIqdPerUsd);
+      loadValue("itemIqdPerUsd", STORAGE_KEYS.itemIqdPerUsd, DEFAULTS.itemIqdPerUsd);
+      loadValue("chinaShippingYuan", STORAGE_KEYS.chinaShippingYuan, DEFAULTS.chinaShippingYuan);
+
+      bindPersistence("dimensions", STORAGE_KEYS.dimensions);
+      bindPersistence("yuan", STORAGE_KEYS.yuan);
+      bindPersistence("rate", STORAGE_KEYS.rate);
+      bindPersistence("quantity", STORAGE_KEYS.quantity);
+      bindPersistence("shippingUsdPerM3", STORAGE_KEYS.shippingUsdPerM3);
+      bindPersistence("shippingIqdPerUsd", STORAGE_KEYS.shippingIqdPerUsd);
+      bindPersistence("itemIqdPerUsd", STORAGE_KEYS.itemIqdPerUsd);
+      bindPersistence("chinaShippingYuan", STORAGE_KEYS.chinaShippingYuan);
+    }
+
     function calculate() {
-      const dimsText = document.getElementById('dimensions').value.trim();
-      const yuan = parseFloat(document.getElementById('yuan').value);
-      const rate = parseFloat(document.getElementById('rate').value);
-      const qty = parseInt(document.getElementById('quantity').value, 10);
+      const dimsText = document.getElementById("dimensions").value.trim();
+      const yuan = parseFloat(document.getElementById("yuan").value);
+      const rate = parseFloat(document.getElementById("rate").value);
+      const qty = parseInt(document.getElementById("quantity").value, 10);
 
-      const usdPerM3 = 230;            // سعر المتر بالدولار
-      const iqdPerUsdShipping = 1500;  // سعر الدولار للشحن
-      const iqdPerUsdItem = 1400;      // سعر الدولار لتحويل سعر السلعة
+      const shippingUsdPerM3 = parseFloat(document.getElementById("shippingUsdPerM3").value);
+      const shippingIqdPerUsd = parseFloat(document.getElementById("shippingIqdPerUsd").value);
+      const itemIqdPerUsd = parseFloat(document.getElementById("itemIqdPerUsd").value);
+      const chinaShippingYuan = parseFloat(document.getElementById("chinaShippingYuan").value);
 
-      const parts = dimsText.split('*').map(v => parseFloat(v));
+      const parts = dimsText.split("*").map(v => parseFloat(v));
 
       if (
         parts.length !== 3 ||
         parts.some(v => isNaN(v) || v <= 0) ||
         isNaN(yuan) || yuan <= 0 ||
         isNaN(rate) || rate <= 0 ||
-        isNaN(qty) || qty <= 0
+        isNaN(qty) || qty <= 0 ||
+        isNaN(shippingUsdPerM3) || shippingUsdPerM3 <= 0 ||
+        isNaN(shippingIqdPerUsd) || shippingIqdPerUsd <= 0 ||
+        isNaN(itemIqdPerUsd) || itemIqdPerUsd <= 0 ||
+        isNaN(chinaShippingYuan) || chinaShippingYuan < 0
       ) {
-        document.getElementById('output').innerHTML = '⚠️ تأكد من إدخال الأبعاد وسعر اليوان وسعر الصرف وعدد القطع بشكل صحيح.';
+        document.getElementById("output").innerHTML = "⚠️ تأكد من إدخال كل القيم بشكل صحيح.";
         return;
       }
 
       const [l, w, h] = parts;
       const volume = (l * w * h) / 1000000;
 
-      const shippingTotal = volume * usdPerM3 * iqdPerUsdShipping;
+      const shippingTotal = volume * shippingUsdPerM3 * shippingIqdPerUsd;
       const shippingPerUnit = shippingTotal / qty;
 
       const usdPrice = yuan / rate;
-      const itemCostIQD = usdPrice * iqdPerUsdItem;
+      const itemCostIQD = usdPrice * itemIqdPerUsd;
 
-      const totalPerUnit = shippingPerUnit + itemCostIQD + 3000;
+      const chinaShippingIQD = (chinaShippingYuan / rate) * 14200;
+      const chinaShippingPerUnit = chinaShippingIQD / qty;
 
-      document.getElementById('output').innerHTML = `
-        ✅ حجم الكارتون: ${volume.toFixed(4)} م³<br>
-        🚚 شحن الكارتون: ${shippingTotal.toFixed(2)} دينار<br>
-        📦 شحن للقطعة: ${shippingPerUnit.toFixed(2)} دينار<br>
-        💰 سعر القطعة: ${itemCostIQD.toFixed(2)} دينار<br>
-        💳 السعر النهائي للقطعة: ${totalPerUnit.toFixed(2)} دينار
+      const totalPerUnit = shippingPerUnit + itemCostIQD + chinaShippingPerUnit + 3000;
+
+      document.getElementById("output").innerHTML = `
+✅ حجم الكارتون: ${volume.toFixed(4)} م³
+🚚 شحن الكارتون: ${shippingTotal.toFixed(2)} دينار
+📦 شحن للقطعة: ${shippingPerUnit.toFixed(2)} دينار
+💰 سعر القطعة: ${itemCostIQD.toFixed(2)} دينار
+🇨🇳 شحن داخل الصين: ${chinaShippingIQD.toFixed(2)} دينار
+🧾 شحن الصين للقطعة: ${chinaShippingPerUnit.toFixed(2)} دينار
+💳 السعر النهائي للقطعة: ${totalPerUnit.toFixed(2)} دينار
       `;
     }
+
+    window.addEventListener("DOMContentLoaded", init);
   </script>
 </body>
 </html>
