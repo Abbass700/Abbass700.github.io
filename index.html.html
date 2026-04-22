@@ -73,15 +73,13 @@
     <input id="shippingUsdPerM3" type="number" step="0.01" placeholder="سعر المتر بالشحن بالدولار">
     <input id="shippingIqdPerUsd" type="number" step="0.01" placeholder="سعر الدولار للشحن بالدينار">
     <input id="itemIqdPerUsd" type="number" step="0.01" placeholder="سعر الدولار لتحويل السلعة للدينار">
-    <input id="chinaShippingYuan" type="number" step="0.01" placeholder="تكلفة الشحن داخل الصين باليوان">
 
     <button onclick="calculate()">احسب</button>
 
     <div class="result" id="output"></div>
 
     <div class="note">
-      سعر الصين الداخلي يتحول هكذا: (اليوان ÷ سعر صرف اليوان) × 14200 دينار<br>
-      الحقول كلها تحفظ آخر قيمة كتبتها تلقائيًا داخل نفس المتصفح
+      الحقول تحفظ آخر قيمة كتبتها تلقائيًا داخل نفس المتصفح
     </div>
   </div>
 
@@ -93,21 +91,14 @@
       quantity: "calc_quantity",
       shippingUsdPerM3: "calc_shippingUsdPerM3",
       shippingIqdPerUsd: "calc_shippingIqdPerUsd",
-      itemIqdPerUsd: "calc_itemIqdPerUsd",
-      chinaShippingYuan: "calc_chinaShippingYuan"
+      itemIqdPerUsd: "calc_itemIqdPerUsd"
     };
 
     const DEFAULTS = {
       shippingUsdPerM3: 230,
       shippingIqdPerUsd: 1500,
-      itemIqdPerUsd: 1400,
-      chinaShippingYuan: 0
+      itemIqdPerUsd: 1400
     };
-
-    function saveValue(id, key) {
-      const el = document.getElementById(id);
-      if (el) localStorage.setItem(key, el.value);
-    }
 
     function loadValue(id, key, fallback = "") {
       const el = document.getElementById(id);
@@ -119,7 +110,7 @@
     function bindPersistence(id, key) {
       const el = document.getElementById(id);
       if (!el) return;
-      el.addEventListener("input", () => saveValue(id, key));
+      el.addEventListener("input", () => localStorage.setItem(key, el.value));
     }
 
     function init() {
@@ -130,7 +121,6 @@
       loadValue("shippingUsdPerM3", STORAGE_KEYS.shippingUsdPerM3, DEFAULTS.shippingUsdPerM3);
       loadValue("shippingIqdPerUsd", STORAGE_KEYS.shippingIqdPerUsd, DEFAULTS.shippingIqdPerUsd);
       loadValue("itemIqdPerUsd", STORAGE_KEYS.itemIqdPerUsd, DEFAULTS.itemIqdPerUsd);
-      loadValue("chinaShippingYuan", STORAGE_KEYS.chinaShippingYuan, DEFAULTS.chinaShippingYuan);
 
       bindPersistence("dimensions", STORAGE_KEYS.dimensions);
       bindPersistence("yuan", STORAGE_KEYS.yuan);
@@ -139,7 +129,6 @@
       bindPersistence("shippingUsdPerM3", STORAGE_KEYS.shippingUsdPerM3);
       bindPersistence("shippingIqdPerUsd", STORAGE_KEYS.shippingIqdPerUsd);
       bindPersistence("itemIqdPerUsd", STORAGE_KEYS.itemIqdPerUsd);
-      bindPersistence("chinaShippingYuan", STORAGE_KEYS.chinaShippingYuan);
     }
 
     function calculate() {
@@ -151,7 +140,6 @@
       const shippingUsdPerM3 = parseFloat(document.getElementById("shippingUsdPerM3").value);
       const shippingIqdPerUsd = parseFloat(document.getElementById("shippingIqdPerUsd").value);
       const itemIqdPerUsd = parseFloat(document.getElementById("itemIqdPerUsd").value);
-      const chinaShippingYuan = parseFloat(document.getElementById("chinaShippingYuan").value);
 
       const parts = dimsText.split("*").map(v => parseFloat(v));
 
@@ -163,8 +151,7 @@
         isNaN(qty) || qty <= 0 ||
         isNaN(shippingUsdPerM3) || shippingUsdPerM3 <= 0 ||
         isNaN(shippingIqdPerUsd) || shippingIqdPerUsd <= 0 ||
-        isNaN(itemIqdPerUsd) || itemIqdPerUsd <= 0 ||
-        isNaN(chinaShippingYuan) || chinaShippingYuan < 0
+        isNaN(itemIqdPerUsd) || itemIqdPerUsd <= 0
       ) {
         document.getElementById("output").innerHTML = "⚠️ تأكد من إدخال كل القيم بشكل صحيح.";
         return;
@@ -179,18 +166,13 @@
       const usdPrice = yuan / rate;
       const itemCostIQD = usdPrice * itemIqdPerUsd;
 
-      const chinaShippingIQD = (chinaShippingYuan / rate) * 14200;
-      const chinaShippingPerUnit = chinaShippingIQD / qty;
-
-      const totalPerUnit = shippingPerUnit + itemCostIQD + chinaShippingPerUnit + 3000;
+      const totalPerUnit = shippingPerUnit + itemCostIQD + 3000;
 
       document.getElementById("output").innerHTML = `
 ✅ حجم الكارتون: ${volume.toFixed(4)} م³
 🚚 شحن الكارتون: ${shippingTotal.toFixed(2)} دينار
 📦 شحن للقطعة: ${shippingPerUnit.toFixed(2)} دينار
 💰 سعر القطعة: ${itemCostIQD.toFixed(2)} دينار
-🇨🇳 شحن داخل الصين: ${chinaShippingIQD.toFixed(2)} دينار
-🧾 شحن الصين للقطعة: ${chinaShippingPerUnit.toFixed(2)} دينار
 💳 السعر النهائي للقطعة: ${totalPerUnit.toFixed(2)} دينار
       `;
     }
